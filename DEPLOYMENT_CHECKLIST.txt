@@ -1,0 +1,275 @@
+═══════════════════════════════════════════════════════════════════════════
+                    CHECKLIST DESPLIEGUE A PRODUCCIÓN
+                    192.168.39.28 | Fecha: __________
+═══════════════════════════════════════════════════════════════════════════
+
+RESPONSABLE: ________________      HORA INICIO: ________   HORA FIN: ________
+
+───────────────────────────────────────────────────────────────────────────
+FASE 1: PRE-DESPLIEGUE (Horas antes)
+───────────────────────────────────────────────────────────────────────────
+
+[ ] Revisar .env.production - credenciales actualizadas
+    - WHATSAPP_GATEWAY_API_KEY: ________________________
+    - WHATSAPP_DESTINO_DEFAULT: ________________________
+    
+[ ] Confirmación acceso a servidor
+    - ¿RDP a 192.168.39.28 funciona?        SÍ / NO
+    - ¿Usuario Admin?                        SÍ / NO
+    - ¿Git disponible?                       SÍ / NO
+    
+[ ] Backup de ANTES
+    - Comando: robocopy C:\app C:\backups\app_pre_deploy
+    - Status: [ ] Completado
+
+[ ] Cambios COMMITED a main
+    - [ ] requirements.txt ✓
+    - [ ] deploy_to_production.ps1 ✓
+    - [ ] setup_cron_tasks.ps1 ✓
+    - [ ] validate_deployment.ps1 ✓
+    - [ ] run_production.py ✓
+    - [ ] DEPLOYMENT_PRODUCTION.md ✓
+    - [ ] .env.production ✗ (NO COMMITEAR)
+
+[ ] Confirmación DB
+    - Ejecutar en SQL Server Manager:
+      SELECT COUNT(*) FROM kb_alertas_eventos
+    - Count: _________ (debe ser > 0)
+
+[ ] SQL Updates ejecutados
+    - [ ] CREATE OR ALTER VIEW vw_kb_productividad_base
+         Status: [ ] Completado
+
+[ ] Notificaciones
+    - [ ] Avisado a usuarios (app estará OFF 1 hora aprox)
+    - [ ] Avisado a supervisión (alertas WhatsApp pausarán)
+
+───────────────────────────────────────────────────────────────────────────
+FASE 2: DESPLIEGUE APP KANBAN (En servidor 192.168.39.28)
+───────────────────────────────────────────────────────────────────────────
+
+[ ] RDP al servidor
+    mstsc /v:192.168.39.28
+    Status: [ ] Conectado
+
+[ ] Crear carpeta de apps
+    mkdir C:\app
+    cd C:\app
+    Status: [ ] Carpeta creada
+
+[ ] Clonar repositorio
+    git clone https://github.com/tu-usuario/kanban-produccion.git kanban_produccion
+    cd kanban_produccion
+    Status: [ ] Código descargado
+    
+    Verificar: dir /B debe mostrar "app", "requirements.txt", "deploy_to_production.ps1"
+
+[ ] Ejecutar despliegue automático
+    .\deploy_to_production.ps1 -Environment production -Branch main
+    
+    Status: [ ] Completado
+    Salida esperada: "🎉 DESPLIEGUE COMPLETADO EXITOSAMENTE"
+
+[ ] Validar despliegue
+    .\validate_deployment.ps1 -ServerIP localhost -AppPort 8000
+    
+    Status: [ ] Completado
+    Resultado esperado: "✅ Pruebas exitosas: X/10"
+
+───────────────────────────────────────────────────────────────────────────
+FASE 3: DESPLIEGUE WHATSAPP GATEWAY (En mismo servidor)
+───────────────────────────────────────────────────────────────────────────
+
+[ ] Clonar repositorio Gateway
+    cd C:\app
+    git clone https://github.com/tu-usuario/whatsapp-gateway.git whatsapp_gateway
+    
+    Status: [ ] Código descargado
+
+[ ] Setup venv y dependencias
+    cd whatsapp_gateway
+    python -m venv .venv
+    .\.venv\Scripts\Activate.ps1
+    pip install -r requirements.txt
+    
+    Status: [ ] Instalado
+
+[ ] Crear servicio Windows (NSSM)
+    # Ver instrucciones en DEPLOYMENT_PRODUCTION.md FASE 2
+    nssm install WhatsAppGateway ...
+    
+    Status: [ ] Servicio instalado
+
+[ ] Iniciar gateway
+    nssm start WhatsAppGateway
+    Get-Service WhatsAppGateway
+    
+    Status: [ ] Corriendo
+
+[ ] Probar conectividad
+    curl http://localhost:5000/health
+    
+    Respuesta esperada: {"status":"ok"}
+    Status: [ ] ✓ Responde
+
+───────────────────────────────────────────────────────────────────────────
+FASE 4: TAREAS PROGRAMADAS CRON
+───────────────────────────────────────────────────────────────────────────
+
+[ ] Configurar tareas en Task Scheduler
+    cd C:\app\kanban_produccion
+    .\setup_cron_tasks.ps1
+    
+    Status: [ ] Completado
+
+[ ] Verificar tareas registradas
+    Get-ScheduledTask -TaskPath "\KanbanProduccion\"
+    
+    Esperado:
+    - Enviar-Alertas-WhatsApp
+    - Insertar-Fichas
+    - Sincronizar-Fichas
+    
+    Status: [ ] Las 3 tareas visibles
+
+───────────────────────────────────────────────────────────────────────────
+FASE 5: VALIDACIONES POST-DESPLIEGUE
+───────────────────────────────────────────────────────────────────────────
+
+[ ] ¿App responde?
+    curl -v http://localhost:8000
+    Status: [ ] HTTP 200/404 ✓
+
+[ ] ¿BD conecta?
+    sqlcmd -S 192.168.39.203 -U wyny -P wyny -Q "SELECT @@VERSION"
+    Status: [ ] Version: ________________
+
+[ ] ¿Gateway responde?
+    curl -H "X-API-Key: kanban123" http://localhost:5000/health
+    Status: [ ] {"status":"ok"} ✓
+
+[ ] ¿Servicios corren?
+    Get-Service KanbanService
+    Get-Service WhatsAppGateway
+    Status: [ ] Ambos "Running"
+
+[ ] ¿Tareas cron se ejecutan?
+    Get-ScheduledTaskInfo -TaskName "Enviar-Alertas-WhatsApp"
+    Status: [ ] LastRunTime actualizado
+
+[ ] ¿Logs sin errores?
+    Get-Content C:\app\kanban_produccion\logs\app_production.log -Tail 30
+    Buscar: "ERROR", "CRITICAL", "Exception"
+    Status: [ ] OK (sin errores críticos)
+
+[ ] ¿WhatsApp Gateway logs?
+    Get-Content C:\app\whatsapp_gateway\logs\gateway.log -Tail 30
+    Status: [ ] OK (sin errores)
+
+───────────────────────────────────────────────────────────────────────────
+FASE 6: PRUEBAR FLUJO COMPLETO
+───────────────────────────────────────────────────────────────────────────
+
+[ ] Acceder a la app en navegador
+    http://192.168.39.28:8000
+    Status: [ ] Carga correctamente
+
+[ ] Crear evento que genere alerta
+    1. Ingresa como usuario de prueba
+    2. Mueve una ficha a "Acabado"
+    3. Debería recibir alert de WhatsApp
+    
+    Status: [ ] Alerta recibida
+
+[ ] Verificar evento en BD
+    SELECT TOP 5 * FROM kb_alertas_eventos ORDER BY fecha_evento DESC
+    Status: [ ] Evento visible
+
+[ ] Revisar logs por errores
+    tail -f C:\app\kanban_produccion\logs\app_production.log
+    Status: [ ] Sin errores after alerta
+
+───────────────────────────────────────────────────────────────────────────
+FASE 7: FINALIZACIÓN Y SIGN-OFF
+───────────────────────────────────────────────────────────────────────────
+
+[ ] Notificar a usuarios que sistema está operativo
+    Mensaje: "App Kanban restaurada en 192.168.39.28"
+
+[ ] Monitorear por 30 minutos
+    - ¿Alertas llegan continuamente?
+    - ¿Logs sin errores?
+    - ¿BD respondiendo?
+    
+    Status: [ ] 30 min de monitoreo completado
+
+[ ] Documentar cualquier problema encontrado
+    Problemas: ________________________________________________________
+    
+    Soluciones aplicadas: ________________________________________________________
+
+[ ] Guardar resumen
+    - Screenshots de validación
+    - Logs de ejecución
+    en: C:\backups\deploy_YYYYMMDD_log.txt
+
+[ ] SIGN-OFF DESPLIEGUE
+    Responsable: ____________________     Fecha/Hora: _____________
+    Supervisor: ______________________    Fecha/Hora: _____________
+
+───────────────────────────────────────────────────────────────────────────
+EMERGENCIA: SI ALGO FALLA
+───────────────────────────────────────────────────────────────────────────
+
+[ ] ROLLBACK INMEDIATO (si crítico)
+    
+    1. Parar servicios:
+       Stop-Service KanbanService
+       nssm stop WhatsAppGateway
+    
+    2. Restaurar backup:
+       Remove-Item C:\app\kanban_produccion -Recurse
+       Copy-Item C:\backups\kanban_produccion_pre_deploy -Destination C:\app\kanban_produccion -Recurse
+    
+    3. Reiniciar:
+       Start-Service KanbanService
+       nssm start WhatsAppGateway
+    
+    Status: [ ] Rollback completado
+
+[ ] Notificar a equipo técnico
+    Contacto Principal: _________________________________________
+    Teléfono: __________________
+    Email: _____________________________________
+
+[ ] Crear issue de postmortem
+    GitHub Issue: https://github.com/...
+    Descripción del problema:
+    ________________________________________________________
+    ________________________________________________________
+
+───────────────────────────────────────────────────────────────────────────
+NOTAS Y OBSERVACIONES
+───────────────────────────────────────────────────────────────────────────
+
+Observaciones durante despliegue:
+_________________________________________________________________________________
+
+_________________________________________________________________________________
+
+_________________________________________________________________________________
+
+Decisiones tomadas:
+_________________________________________________________________________________
+
+_________________________________________________________________________________
+
+Seguimiento requerido:
+[ ] Monitoreo 24 horas post-deploy
+[ ] Revisar logs al día siguiente
+[ ] Performance testing después de 24 horas
+[ ] Reunion post-mortem (si problemas)
+
+═══════════════════════════════════════════════════════════════════════════
+Despliegue Finalizado: ___________________
+═══════════════════════════════════════════════════════════════════════════

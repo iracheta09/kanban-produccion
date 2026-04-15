@@ -1,0 +1,34 @@
+# FastAPI Core
+fastapi==0.135.1
+uvicorn==0.42.0
+starlette==0.52.1
+python-multipart==0.0.22
+
+# Database
+SQLAlchemy==2.0.48
+pyodbc==5.3.0
+mssql-django==1.6
+
+# Configuration & Environment
+python-dotenv==1.2.2
+python-decouple==3.8
+
+# HTTP Requests (para conectar con WhatsApp Gateway)
+requests==2.32.5
+aiohttp==3.13.3
+
+# Templating (Jinja2)
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+
+# Task Scheduling (para cron jobs locales)
+APScheduler==3.11.2
+
+# Utilities
+pydantic==2.12.5
+pydantic_core==2.41.5
+typing_extensions==4.15.0
+anyio==4.12.1
+
+# Logging & Monitoring
+colorama==0.4.6

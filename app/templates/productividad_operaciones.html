@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Productividad por Operación</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        tr:hover {
+            background: #f0f0f0;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 8px 15px;
+            background: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .nav a:hover {
+            background: #0b7dda;
+        }
+        .tiempo-rapido {
+            background: #c8e6c9;
+            font-weight: bold;
+        }
+        .tiempo-medio {
+            background: #fff9c4;
+        }
+        .tiempo-lento {
+            background: #ffcdd2;
+        }
+        .pzas-alto {
+            background: #c8e6c9;
+            font-weight: bold;
+        }
+        .pzas-medio {
+            background: #fff9c4;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="nav">
+    <a href="/tablero">Tablero</a>
+    <a href="/productividad">Productividad Operarios</a>
+    <a href="/productividad-operaciones">Por Operación</a>
+    <a href="/productividad-areas">Por Área</a>
+    <a href="/productividad-diaria">Diaria</a>
+    <a href="/kanban/2">Volver al Kanban</a>
+</div>
+
+<h2>{{ titulo }}</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Operación</th>
+            <th>Movimientos</th>
+            <th>Total piezas</th>
+            <th>Total kg</th>
+            <th>Promedio min</th>
+            <th>Pzas/min</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in data %}
+        <tr>
+            <td>{{ r.nombre_operacion }}</td>
+            <td>{{ r.movimientos }}</td>
+            <td class="{% if r.total_pzas >= 5000 %}pzas-alto{% elif r.total_pzas >= 1000 %}pzas-medio{% else %}tiempo-lento{% endif %}">
+                {{ r.total_pzas }}
+            </td>
+            <td>{{ r.total_kg }}</td>
+            <td class="{% if r.promedio_minutos <= 15 %}tiempo-rapido{% elif r.promedio_minutos <= 30 %}tiempo-medio{% else %}tiempo-lento{% endif %}">
+                {{ r.promedio_minutos }}
+            </td>
+            <td class="{% if r.pzas_por_minuto >= 20 %}tiempo-rapido{% elif r.pzas_por_minuto >= 10 %}tiempo-medio{% else %}tiempo-lento{% endif %}">
+                {{ r.pzas_por_minuto }}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+</div>
+
+</body>
+</html>

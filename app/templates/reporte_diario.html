@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Control de Producción Curtits - Reporte Diario</title>
+    <style>
+        body{
+            font-family: Arial, Helvetica, sans-serif;
+            margin:0;
+            background:#f7f8fa;
+        }
+
+        .topbar{
+            background:white;
+            border-bottom:1px solid #ddd;
+            padding:18px 24px;
+        }
+
+        .titulo{
+            margin:0;
+            font-size:28px;
+            font-weight:800;
+            color:#1f2937;
+        }
+
+        .sub{
+            margin-top:6px;
+            color:#4b5563;
+            font-weight:600;
+        }
+
+        .acciones{
+            padding:14px 24px;
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            align-items:center;
+            background:#eef2f7;
+            border-bottom:1px solid #dbe2ea;
+        }
+
+        .btn{
+            background:#374151;
+            color:white;
+            text-decoration:none;
+            padding:8px 12px;
+            border-radius:8px;
+            font-size:13px;
+            font-weight:600;
+            border:none;
+            cursor:pointer;
+        }
+
+        .btn.sec{
+            background:#2563eb;
+        }
+
+        .btn:hover{
+            opacity:0.9;
+        }
+
+        .contenedor{
+            padding:20px 24px;
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+            background:white;
+        }
+
+        th, td{
+            border:1px solid #ddd;
+            padding:8px 10px;
+            text-align:left;
+            font-size:14px;
+        }
+
+        th{
+            background:#f3f4f6;
+            font-weight:700;
+        }
+
+        .filtro{
+            display:flex;
+            gap:10px;
+            align-items:center;
+            flex-wrap:wrap;
+        }
+
+        input[type="date"]{
+            padding:7px 10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        <h1 class="titulo">Control de Producción Curtits – Reporte Diario</h1>
+        <div class="sub">{{ titulo }}</div>
+    </div>
+
+    <div class="acciones">
+        <a href="/menu" class="btn">Menú principal</a>
+        <a href="/reporte-diario?vista=operacion{% if fecha %}&fecha={{ fecha }}{% endif %}" class="btn sec">Por operación</a>
+        <a href="/reporte-diario?vista=terminados{% if fecha %}&fecha={{ fecha }}{% endif %}" class="btn sec">Terminados por área</a>
+
+        <form method="get" action="/reporte-diario" class="filtro">
+            <input type="hidden" name="vista" value="{{ vista }}">
+            <label for="fecha"><b>Fecha:</b></label>
+            <input type="date" name="fecha" id="fecha" value="{{ fecha }}">
+            <button type="submit" class="btn">Filtrar</button>
+        </form>
+    </div>
+
+    <div class="contenedor">
+        <table>
+            <thead>
+                <tr>
+                    {% if vista == 'terminados' %}
+                        <th>Fecha</th>
+                        <th>Área</th>
+                        <th>Fichas terminadas</th>
+                        <th>Total piezas</th>
+                        <th>Total kg</th>
+                    {% else %}
+                        <th>Fecha</th>
+                        <th>Área</th>
+                        <th>Operación</th>
+                        <th>Movimientos</th>
+                        <th>Total piezas</th>
+                        <th>Total kg</th>
+                        <th>Total minutos</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in data %}
+                    <tr>
+                        {% if vista == 'terminados' %}
+                            <td>{{ r.fecha }}</td>
+                            <td>{{ r.nombre_area }}</td>
+                            <td>{{ r.fichas_terminadas }}</td>
+                            <td>{{ r.total_pzas }}</td>
+                            <td>{{ r.total_kg }}</td>
+                        {% else %}
+                            <td>{{ r.fecha }}</td>
+                            <td>{{ r.nombre_area }}</td>
+                            <td>{{ r.nombre_operacion }}</td>
+                            <td>{{ r.movimientos }}</td>
+                            <td>{{ r.total_pzas }}</td>
+                            <td>{{ r.total_kg }}</td>
+                            <td>{{ r.total_minutos|round(2) }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

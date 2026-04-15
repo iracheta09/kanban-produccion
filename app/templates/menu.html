@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Producción Curtits – Kanban</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            padding: 30px 20px;
+            border-bottom: 3px solid #f97316;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: relative;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-logo {
+            position: absolute;
+            top: 12px;
+            right: 20px;
+            height: 100px;
+            width: auto;
+            object-fit: contain;
+            opacity: 0.95;
+            transition: opacity 0.3s ease;
+        }
+
+        .header-logo:hover {
+            opacity: 1;
+        }
+
+        .titulo {
+            font-size: 32px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: 0.5px;
+        }
+
+        .subtitulo {
+            font-size: 14px;
+            color: #d1d5db;
+            margin-top: 5px;
+        }
+
+        .contenedor {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 20px;
+            margin-top: 30px;
+        }
+
+        h2:first-child {
+            margin-top: 0;
+        }
+
+        .descripcion {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+
+        /* Grid de áreas */
+        .grid-areas {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 18px;
+            margin-bottom: 40px;
+        }
+
+        .card-area {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #f97316;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-area:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-area {
+            padding: 10px;
+            background: #f97316;
+            color: white !important;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+        }
+
+        .btn-area:hover {
+            background: #ea7317;
+            transform: translateY(-1px);
+        }
+
+        .btn-area.btn-detalle {
+            background: #374151;
+        }
+
+        .btn-area.btn-detalle:hover {
+            background: #1f2937;
+        }
+
+        .card-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.05), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .card-area:hover::before {
+            opacity: 1;
+        }
+
+        .card-area:hover .nombre-area {
+            color: #f97316;
+        }
+
+        .nombre-area {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .datos-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .datos-area .dato:nth-child(3),
+        .datos-area .dato:nth-child(4) {
+            max-width: 100%;
+        }
+
+        .dato {
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+
+        .dato-valor {
+            font-size: 24px;
+            font-weight: 800;
+            color: #f97316;
+            display: block;
+        }
+
+        .dato-etiqueta {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* Sección mantenimiento */
+        .seccion-mantenimiento {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .grid-catalogos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .btn-catalogo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 16px;
+            background: #374151;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            min-height: 48px;
+        }
+
+        .btn-catalogo:hover {
+            background: #1f2937;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-catalogo:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .titulo {
+                font-size: 24px;
+            }
+
+            .grid-areas {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-catalogos {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .contenedor {
+                padding: 20px 15px;
+            }
+        }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #f97316;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="/static/images/logo.png" alt="Logo Curtits" class="header-logo">
+        <div class="header-content">
+            <div class="titulo">🐂 Control de Producción Curtits – Kanban</div>
+            <div class="subtitulo">Sistema integrado de gestión de producción por áreas</div>
+        </div>
+    </div>
+
+    <div class="contenedor">
+
+        <!-- Sección de Áreas -->
+        <h2>📋 Selecciona un área</h2>
+        <p class="descripcion">Haz clic en el área para ver el tablero kanban y gestionar las fichas de producción.</p>
+
+        <!-- KPIs Totales -->
+        {% if totales %}
+        <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; color: white; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.2);">
+            <div style="text-align: center; margin-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 18px;">📊 TOTALES EMPRESA</h3>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px;">
+                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
+                    <div style="font-size: 28px; font-weight: 800;">{{ totales.total_partidas_global or 0 }}</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Partidas</div>
+                </div>
+                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
+                    <div style="font-size: 28px; font-weight: 800;">{{ totales.total_piezas_global or 0 }}</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Piezas</div>
+                </div>
+                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
+                    <div style="font-size: 28px; font-weight: 800;">{{ (totales.total_kilos_global or 0)|int }}</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Kilos</div>
+                </div>
+                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
+                    <div style="font-size: 28px; font-weight: 800;">{{ (totales.total_pies_global or 0)|int }}</div>
+                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Pies</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if areas %}
+        <div class="grid-areas">
+            {% for a in areas %}
+            <div class="card-area">
+                <div class="nombre-area">{{ a.nombre_area }}</div>
+                <div class="datos-area">
+                    <div class="dato">
+                        <span class="dato-valor">{{ a.total_partidas }}</span>
+                        <span class="dato-etiqueta">Partidas</span>
+                    </div>
+                    <div class="dato">
+                        <span class="dato-valor">{{ a.total_piezas }}</span>
+                        <span class="dato-etiqueta">Piezas</span>
+                    </div>
+                    <div class="dato">
+                        <span class="dato-valor">{{ (a.total_kilos or 0)|int }}</span>
+                        <span class="dato-etiqueta">Kilos</span>
+                    </div>
+                    <div class="dato">
+                        <span class="dato-valor">{{ (a.total_pies or 0)|int }}</span>
+                        <span class="dato-etiqueta">Pies</span>
+                    </div>
+                </div>
+                <div style="display: grid; gap: 8px; margin-top: 12px;">
+                    <a href="/kanban/{{ a.id_area }}" class="btn-area">Ver Fichas</a>
+                    <a href="/area/{{ a.id_area }}/details" class="btn-area btn-detalle">Detalles</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>No hay áreas registradas</p>
+        </div>
+        {% endif %}
+
+        <!-- Sección de Mantenimiento -->
+        <div class="seccion-mantenimiento">
+            <h2>🔧 Mantenimiento de Catálogos</h2>
+            <p class="descripcion">Gestiona la información base del sistema desde aquí.</p>
+
+            <div class="grid-catalogos">
+                <button class="btn-catalogo" onclick="abrirAdmin('/catalogos/areas')">📍 Áreas</button>
+                <button class="btn-catalogo" onclick="abrirAdmin('/catalogo/operaciones')">⚙️ Operaciones</button>
+                <button class="btn-catalogo" onclick="abrirAdmin('/catalogo/partidas')">📦 Partidas</button>
+                <button class="btn-catalogo" onclick="abrirAdmin('/catalogo/centrocostos')">💰 Centro Costos</button>
+                <button class="btn-catalogo" onclick="abrirAdmin('/catalogo/area-partidas')">🔗 Área-Partidas</button>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+function abrirAdmin(url) {
+    let key = prompt("🔐 Ingrese clave de administrador:");
+    
+    if (!key) {
+        return;  // Usuario canceló
+    }
+    
+    // Redirige con la clave en query params
+    window.location.href = url + "?admin_key=" + encodeURIComponent(key);
+}
+</script>
+
+</body>
+</html>

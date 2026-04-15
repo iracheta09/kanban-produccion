@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recepciones Pendientes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 8px 15px;
+            background: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .nav a:hover {
+            background: #0b7dda;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background: #FF9800;
+            color: white;
+            font-weight: bold;
+        }
+        td:first-child, th:first-child {
+            text-align: left;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        tr:hover {
+            background: #f0f0f0;
+        }
+        .btn-recibir {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-recibir:hover {
+            background: #45a049;
+        }
+        .btn-recibir:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .info-box strong {
+            color: #1976d2;
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="nav">
+        <a href="/kanban/2">Volver al Kanban</a>
+        <a href="/tablero">Tablero</a>
+        <a href="/productividad">Productividad</a>
+    </div>
+
+    <h2>📦 Recepciones Pendientes</h2>
+
+    <div class="info-box">
+        <strong>Área destino:</strong> Aquí recibes fichas enviadas desde otras áreas
+    </div>
+
+    {% if transferencias %}
+    <table>
+        <thead>
+            <tr>
+                <th>Ficha</th>
+                <th>Tipo</th>
+                <th>Área Origen</th>
+                <th>Fecha Envío</th>
+                <th>Enviado por</th>
+                <th>Observaciones</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody id="body-recepciones">
+            {% for t in transferencias %}
+            <tr id="row-{{ t.id_transferencia }}">
+                <td><strong>{{ t.ficha }}</strong></td>
+                <td>{{ t.pa_tipo }}</td>
+                <td>{{ t.area_origen }}</td>
+                <td>{{ t.fecha_envio.strftime('%d/%m/%Y %H:%M') if t.fecha_envio else '-' }}</td>
+                <td>{{ t.enviado_por_nombre or '-' }}</td>
+                <td>{{ t.observaciones or '-' }}</td>
+                <td>
+                    <button 
+                        class="btn-recibir" 
+                        onclick="recibirTransferencia({{ t.id_transferencia }}, '{{ t.ficha }}')"
+                    >
+                        ✓ Recibir
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No hay recepciones pendientes 🎉</p>
+        <p style="font-size: 12px; color: #ccc;">Cuando otras áreas envíen fichas aquí, aparecerán en esta lista</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+async function recibirTransferencia(idTransferencia, ficha) {
+    // Obtener nombre del usuario que recibe (puede ser dinámico)
+    const recibiePor = prompt('Tu nombre o usuario:', '');
+    
+    if (!recibiePor) {
+        alert('Debes ingresar tu nombre');
+        return;
+    }
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = 'Procesando...';
+
+    try {
+        const response = await fetch('/kanban/recibir-transferencia', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id_transferencia: idTransferencia,
+                recibido_por: recibiePor,
+                recibido_por_nombre: recibiePor
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'ok') {
+            // Eliminar la fila con animación
+            const row = document.getElementById(`row-${idTransferencia}`);
+            row.style.opacity = '0.5';
+            row.style.backgroundColor = '#c8e6c9';
+            
+            setTimeout(() => {
+                row.style.display = 'none';
+                
+                // Si no hay más filas, mostrar empty state
+                const tbody = document.getElementById('body-recepciones');
+                if (tbody && tbody.children.length === 0) {
+                    location.reload();
+                }
+            }, 500);
+
+            alert(`✓ Ficha ${ficha} recibida correctamente.\n\nAparece en Recepción del Kanban.`);
+        } else {
+            alert(`❌ Error: ${data.message}`);
+            btn.disabled = false;
+            btn.textContent = '✓ Recibir';
+        }
+    } catch (error) {
+        alert(`❌ Error en la solicitud: ${error.message}`);
+        btn.disabled = false;
+        btn.textContent = '✓ Recibir';
+    }
+}
+</script>
+
+</body>
+</html>

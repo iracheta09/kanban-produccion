@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Operaciones</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1f2937;
+            margin-top: 0;
+            border-bottom: 3px solid #f97316;
+            padding-bottom: 15px;
+        }
+        .btn-back {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 14px;
+            background: #374151;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-back:hover {
+            background: #1f2937;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            font-weight: 700;
+            border-bottom: 2px solid #e5e7eb;
+            color: #374151;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        tr:hover {
+            background: #f9fafb;
+        }
+        .vacio {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/menu" class="btn-back">← Volver al menú</a>
+        <h1>⚙️ Catálogo de Operaciones</h1>
+        
+        {% if operaciones %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre Operación</th>
+                    <th>Área</th>
+                    <th>Orden Visual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for op in operaciones %}
+                <tr>
+                    <td>{{ op.id_operacion }}</td>
+                    <td>{{ op.nombre_operacion }}</td>
+                    <td>{{ op.id_area }}</td>
+                    <td>{{ op.orden_visual }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="vacio">No hay operaciones registradas</div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% if modo == 'nuevo' %}Nueva Área{% else %}Editar Área{% endif %}</title>
+    <style>
+        body{
+            font-family: Arial, Helvetica, sans-serif;
+            margin:0;
+            background:#f7f8fa;
+        }
+
+        .topbar{
+            background:white;
+            border-bottom:1px solid #ddd;
+            padding:18px 24px;
+        }
+
+        .titulo{
+            margin:0;
+            font-size:28px;
+            font-weight:800;
+            color:#1f2937;
+        }
+
+        .contenedor{
+            max-width:700px;
+            margin:24px auto;
+            background:white;
+            padding:24px;
+            border-radius:10px;
+            box-shadow:0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        label{
+            display:block;
+            margin-top:14px;
+            margin-bottom:6px;
+            font-weight:700;
+        }
+
+        input[type="text"], input[type="number"], textarea, select{
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            font-size:14px;
+            box-sizing:border-box;
+        }
+
+        textarea{
+            min-height:90px;
+        }
+
+        .acciones{
+            margin-top:20px;
+            display:flex;
+            gap:10px;
+        }
+
+        .btn{
+            background:#374151;
+            color:white;
+            text-decoration:none;
+            padding:10px 14px;
+            border-radius:8px;
+            font-size:14px;
+            font-weight:600;
+            border:none;
+            cursor:pointer;
+        }
+
+        .btn.guardar{
+            background:#2563eb;
+        }
+
+        .error{
+            background:#fee2e2;
+            color:#991b1b;
+            padding:10px 12px;
+            border-radius:8px;
+            margin-bottom:12px;
+            font-weight:600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        <h1 class="titulo">
+            {% if modo == 'nuevo' %}Nueva Área{% else %}Editar Área{% endif %}
+        </h1>
+    </div>
+
+    <div class="contenedor">
+
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/catalogos/areas/guardar">
+            <input type="hidden" name="id_area" value="{{ area.id_area if area else 0 }}">
+            <input type="hidden" name="admin_key" value="{{ admin_key }}">
+
+            <label>Clave de área</label>
+            <input type="text" name="clave_area" value="{{ area.clave_area if area else '' }}" required>
+
+            <label>Nombre de área</label>
+            <input type="text" name="nombre_area" value="{{ area.nombre_area if area else '' }}" required>
+
+            <label>Descripción</label>
+            <textarea name="descripcion">{{ area.descripcion if area else '' }}</textarea>
+
+            <label>Orden visual</label>
+            <input type="number" name="orden_visual" value="{{ area.orden_visual if area else 1 }}" required>
+
+            <label>Activo</label>
+            <select name="activo">
+                <option value="1" {% if not area or area.activo %}selected{% endif %}>Sí</option>
+                <option value="0" {% if area and not area.activo %}selected{% endif %}>No</option>
+            </select>
+
+            <div class="acciones">
+                <button type="submit" class="btn guardar">Guardar</button>
+                <a href="/catalogos/areas?admin_key={{ admin_key }}" class="btn">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

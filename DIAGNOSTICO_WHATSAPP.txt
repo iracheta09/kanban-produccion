@@ -1,0 +1,110 @@
+╔════════════════════════════════════════════════════════════════════╗
+║   DIAGNÓSTICO: POR QUÉ NO LLEGAN LOS MENSAJES A WHATSAPP            ║
+╚════════════════════════════════════════════════════════════════════╝
+
+✅ El sistema SÍ está enviando correctamente
+   (Status 200 de WhatsApp API)
+
+❌ Pero tú NO los recibiste
+
+═════════════════════════════════════════════════════════════════════
+
+VERIFICACIONES (en este orden):
+
+1️⃣ VERIFICAR QUE WHATSAPP ESTÉ INSTALADO Y ACTIVO
+─────────────────────────────────────────────────
+
+□ En tu móvil (5247773013276):
+   ✓ ¿Tiene WhatsApp instalado?
+   ✓ ¿WhatsApp está actualizado a la última versión?
+   ✓ ¿Abriste WhatsApp hace menos de 24 horas?
+   ✓ La app está con PERMISO DE INTERNET
+
+═════════════════════════════════════════════════════════════════════
+
+2️⃣ VERIFICAR CONEXIÓN A INTERNET
+────────────────────────────────
+
+□ En tu móvil:
+   ✓ ¿Tienes WiFi o datos activados?
+   ✓ Abre WhatsApp manualmente
+   ✓ ¿Puedes enviar/recibir mensajes normales?
+   
+   Si NO: Activa Internet primero
+
+═════════════════════════════════════════════════════════════════════
+
+3️⃣ VERIFICAR CONFIGURACIÓN DE WHATSAPP
+──────────────────────────────────────
+
+□ En tu móvil:
+   ✓ Abre WhatsApp > Configuración > Cuentas > Privacidad
+   ✓ Asegúrate que "Mensajes desconocidos" está PERMITIDO
+   ✓ Verifica que no hay filtros activos
+
+═════════════════════════════════════════════════════════════════════
+
+4️⃣ VERIFICAR NÚMERO CONFIGURADO
+──────────────────────────────
+
+Número guardado en el sistema: 5247773013276
+
+□ En tu móvil:
+   ✓ Abre WhatsApp
+   ✓ Verifica en "Mi número" en Configuración
+   ✓ ¿Es EXACTAMENTE: 5247773013276?
+   
+   Si es diferente, avísame
+
+═════════════════════════════════════════════════════════════════════
+
+5️⃣ RECIBIR UN MENSAJE DE PRUEBA
+──────────────────────────────
+
+Si ya verificaste todo lo anterior, dime y ejecutaré:
+
+   python test_whatsapp_directo.py
+
+Y te enviaré un mensaje de prueba.
+Mira tu WhatsApp en los próximos 30 segundos.
+
+═════════════════════════════════════════════════════════════════════
+
+6️⃣ SI AÚN NO LLEGA: MENSAJES OCULTOS
+────────────────────────────────────
+
+En WhatsApp a veces los mensajes van a una carpeta especial:
+
+□ En tu móvil:
+   ✓ Abre WhatsApp
+   ✓ Bottom > Chats
+   ✓ ¿Hay una carpeta "Actualizaciones" o "Spam"?
+   ✓ ¿Ves allí mensajes de este número (524-777-3013276)?
+
+═════════════════════════════════════════════════════════════════════
+
+7️⃣ SOLUCIÓN: SI EL NÚMERO ES DIFERENTE
+──────────────────────────────────────
+
+Si tu número en WhatsApp es DIFERENTE a 5247773013276:
+
+Avísame el número correcto y lo cambio aquí:
+
+   config_whatsapp.py
+
+Línea:
+   NUMERO_DESTINO = "TU_NUMERO_AQUI"
+
+Por ejemplo:
+   NUMERO_DESTINO = "521234567890"
+
+═════════════════════════════════════════════════════════════════════
+
+Si ya verificaste todo y sigue sin llegar:
+
+Envía screenshot de:
+   1. Tu número en WhatsApp (Configuración > Mi número)
+   2. Bandeja de entrada y carpeta de Actualizaciones
+   3. Log del sistema mostrando Status 200
+
+═════════════════════════════════════════════════════════════════════

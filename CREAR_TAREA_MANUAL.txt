@@ -1,0 +1,140 @@
+╔════════════════════════════════════════════════════════════════════╗
+║   CREAR TAREA AUTOMÁTICA - GUÍA PASO A PASO                        ║
+╚════════════════════════════════════════════════════════════════════╝
+
+El script necesita permisos de administrador para crear la tarea.
+Aquí te muestro 3 formas de hacerlo:
+
+═════════════════════════════════════════════════════════════════════
+
+OPCIÓN 1: PowerShell como ADMINISTRADOR (Recomendado)
+─────────────────────────────────────────────────────
+
+1. ABRE PowerShell como ADMINISTRADOR:
+   - Click derecho en el botón Inicio (Windows)
+   - Busca "PowerShell"
+   - Clic derecho > "Ejecutar como administrador"
+
+2. COPIA Y PEGA ESTO (todo de una vez):
+
+───────────────────────────────────────────────────────────────────
+$trigger = New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Minutes 1) -Once -At (Get-Date)
+$action = New-ScheduledTaskAction -Execute "C:\kanban_produccion\.venv\Scripts\python.exe" -Argument "C:\kanban_produccion\cron_enviar_alertas.py"
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount
+Register-ScheduledTask -TaskName "Enviar Alertas WhatsApp" -Trigger $trigger -Action $action -Principal $principal -Force
+───────────────────────────────────────────────────────────────────
+
+3. Presiona ENTER
+
+4. Deberías ver una salida similar a:
+   TaskPath                                       TaskName
+   ────────────────────────────────────────────   ──────────────────────
+   \                                              Enviar Alertas WhatsApp
+
+   ✅ Listo!
+
+═════════════════════════════════════════════════════════════════════
+
+OPCIÓN 2: Símbolo del sistema (CMD) como ADMINISTRADOR
+─────────────────────────────────────────────────────
+
+1. ABRE CMD como ADMINISTRADOR:
+   - Click derecho en el botón Inicio
+   - Busca "Símbolo del sistema"
+   - Clic derecho > "Ejecutar como administrador"
+
+2. COPIA Y PEGA ESTO (todo de una vez):
+
+───────────────────────────────────────────────────────────────────
+schtasks /create /tn "Enviar Alertas WhatsApp" /tr "C:\kanban_produccion\.venv\Scripts\python.exe C:\kanban_produccion\cron_enviar_alertas.py" /sc minute /mo 1 /ru SYSTEM /f
+───────────────────────────────────────────────────────────────────
+
+3. Presiona ENTER
+
+4. Deberías ver:
+   ¡La tarea "Enviar Alertas WhatsApp" se ha creado correctamente!
+
+   ✅ Listo!
+
+═════════════════════════════════════════════════════════════════════
+
+OPCIÓN 3: Windows Task Scheduler (Manual)
+──────────────────────────────────────────
+
+1. ABRE "Programador de tareas":
+   - Presiona Windows + R
+   - Escribe: taskschd.msc
+   - Presiona ENTER
+
+2. En el panel izquierdo:
+   - Click en "Biblioteca del Programador de tareas"
+
+3. En el panel derecho:
+   - Click derecho > "Crear tarea básica"
+
+4. RELLENA los datos:
+
+   Nombre: Enviar Alertas WhatsApp
+   Descripción: Envía alertas a WhatsApp cada minuto
+   
+   Click en "SIGUIENTE"
+
+5. DESENCADENADOR:
+   - Selecciona: "Diariamente"
+   - O "Repetar cada minuto"
+   - Click en "SIGUIENTE"
+
+6. ACCIÓN:
+   - Programa: C:\kanban_produccion\.venv\Scripts\python.exe
+   - Argumentos: C:\kanban_produccion\cron_enviar_alertas.py
+   - Click en "SIGUIENTE"
+
+7. RESUMEN:
+   - Verifica que esté todo correcto
+   - Click en "FINALIZAR"
+
+   ✅ Listo!
+
+═════════════════════════════════════════════════════════════════════
+
+VERIFICAR QUE FUNCIONE
+──────────────────────
+
+Después de crear la tarea:
+
+1. Abre "Programador de tareas" nuevamente
+2. Busca: "Enviar Alertas WhatsApp"
+3. Deberías verla en la lista
+4. Estado debe ser: "Habilitada"
+
+Para ver los logs después:
+   - Click derecho en la tarea
+   - "Propiedades"
+   - "Historial"
+
+═════════════════════════════════════════════════════════════════════
+
+¿QUÉ OCURRE CUANDO ESTÁ CREADA?
+────────────────────────────────
+
+Cada 1 minuto:
+  ✓ La tarea se ejecuta automáticamente
+  ✓ Busca eventos nuevos en la BD
+  ✓ Los envía a WhatsApp
+  ✓ Marca como enviados
+
+Resultado:
+  📱 El gerente recibe mensajes en tiempo real
+
+Ejemplo:
+  2:00 PM → Un operario inicia una ficha
+  2:01 PM → Gerente recibe: "Acabado: Juan inició AS-325870"
+  2:15 PM → Operario la termina  
+  2:16 PM → Gerente recibe: "Acabado: Juan terminó AS-325870"
+
+═════════════════════════════════════════════════════════════════════
+
+RECOMENDACIÓN:
+ 👉 Usa OPCIÓN 1 (PowerShell) - Es la más rápida y confiable
+
+═════════════════════════════════════════════════════════════════════

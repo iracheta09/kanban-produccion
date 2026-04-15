@@ -1,0 +1,22 @@
+# Carpetas que NO vamos a versionar
+.venv/
+backups/
+__pycache__/
+*.pyc
+.env
+
+# Logs
+*.log
+logs/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files (opcional)
+test_*.py
+debug_*.py
