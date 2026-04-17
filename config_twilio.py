@@ -3,9 +3,9 @@ Configuración de Twilio para WhatsApp
 """
 
 # Credenciales de Twilio (Live)
-TWILIO_ACCOUNT_SID = "ACd2f2c4ea6849754261613134d6cb085a"
-TWILIO_AUTH_TOKEN = "9457f520cee19e8abda8c2b7fcb242bd"
-TWILIO_WHATSAPP_NUMBER = "+14155238886"  # Número sandbox para WhatsApp
+TWILIO_ACCOUNT_SID = "AC................"
+TWILIO_AUTH_TOKEN = "9457f520ce..................."
+TWILIO_WHATSAPP_NUMBER = "+1415----"  # Número sandbox para WhatsApp
 
 # Números destino (los que recibirán alertas)
 # Puedes agregar múltiples números aquí
