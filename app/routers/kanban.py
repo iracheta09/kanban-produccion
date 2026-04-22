@@ -957,6 +957,103 @@ def iniciar_ficha(data: dict):
         return {"ok": False, "error": str(e)}
 
 
+@router.get("/kanban/buscar-partida/{id_area}/{numero_ficha}")
+def buscar_partida(id_area: int, numero_ficha: str):
+    """
+    Busca una partida por número en el área especificada.
+    Retorna: numero, estado, descripción y si hay acciones disponibles
+    """
+    db = SessionLocal()
+
+    try:
+        # Buscar la ficha en la base de datos usando vista vw_kb_tablero
+        ficha = db.execute(text("""
+            SELECT
+                kf.ficha,
+                kf.pa_tipo,
+                kf.estado_actual,
+                v.descripcion_articulo,
+                v.unidades_originales,
+                v.kilos_originales,
+                kf.id_operacion_actual,
+                ko.nombre_operacion,
+                kf.nombre_operario_actual,
+                kf.id_area
+            FROM dbo.kb_ficha_estado kf
+            LEFT JOIN dbo.vw_kb_tablero v ON v.id_ficha_estado = kf.id_ficha_estado
+            LEFT JOIN dbo.kb_operaciones ko ON ko.id_operacion = kf.id_operacion_actual
+            WHERE kf.ficha = :numero_ficha
+              AND kf.id_area = :id_area
+              AND kf.activo = 1
+        """), {
+            "numero_ficha": numero_ficha.strip(),
+            "id_area": id_area
+        }).mappings().first()
+
+        if not ficha:
+            return {
+                "status": "error",
+                "message": "Partida no encontrada en esta área"
+            }
+
+        # Determinar qué acciones son permitidas según estado
+        acciones = {}
+        if ficha["estado_actual"] == "LISTA":
+            acciones = {
+                "puede_iniciar": True,
+                "puede_enviar": True,
+                "puede_pausar": False,
+                "puede_finalizar": False,
+                "puede_reanudar": False
+            }
+        elif ficha["estado_actual"] == "CURSO":
+            acciones = {
+                "puede_iniciar": False,
+                "puede_enviar": False,
+                "puede_pausar": True,
+                "puede_finalizar": True,
+                "puede_reanudar": False
+            }
+        elif ficha["estado_actual"] == "PAUSA":
+            acciones = {
+                "puede_iniciar": False,
+                "puede_enviar": False,
+                "puede_pausar": False,
+                "puede_finalizar": True,
+                "puede_reanudar": True
+            }
+        else:  # FINALIZADA u otro
+            acciones = {
+                "puede_iniciar": False,
+                "puede_enviar": False,
+                "puede_pausar": False,
+                "puede_finalizar": False,
+                "puede_reanudar": False
+            }
+
+        return {
+            "status": "ok",
+            "ficha": {
+                "numero": ficha["ficha"],
+                "tipo": ficha["pa_tipo"],
+                "estado": ficha["estado_actual"],
+                "descripcion": ficha["descripcion_articulo"] or "",
+                "unidades": ficha["unidades_originales"] or 0,
+                "kilos": ficha["kilos_originales"] or 0,
+                "operacion": ficha["nombre_operacion"] or "",
+                "operario": ficha["nombre_operario_actual"] or "",
+                "id_operacion": ficha["id_operacion_actual"]
+            },
+            "acciones": acciones
+        }
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+    finally:
+        db.close()
+
+
 @router.post("/ficha/pausar")
 def pausar_ficha(data: dict):
     """

@@ -2,6 +2,12 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from dotenv import load_dotenv
+import os
+
+# Cargar .env
+load_dotenv()
+
 from app.routers import menu, area_detalle, catalogo, catalogo_areas, kanban, productividad, reporte_diario
 
 app = FastAPI()

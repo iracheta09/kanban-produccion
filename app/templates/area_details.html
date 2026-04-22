@@ -148,6 +148,58 @@
             color:#dc2626;
             font-weight:600;
         }
+
+        .btn-accion{
+            display:inline-block;
+            padding:4px 8px;
+            margin-right:4px;
+            border:none;
+            border-radius:4px;
+            font-size:11px;
+            font-weight:600;
+            cursor:pointer;
+            color:white;
+        }
+
+        .btn-iniciar{
+            background:#3b82f6;
+        }
+
+        .btn-iniciar:hover{
+            background:#2563eb;
+        }
+
+        .btn-pausar{
+            background:#f59e0b;
+        }
+
+        .btn-pausar:hover{
+            background:#d97706;
+        }
+
+        .btn-finalizar{
+            background:#10b981;
+        }
+
+        .btn-finalizar:hover{
+            background:#059669;
+        }
+
+        .btn-enviar{
+            background:#f97316;
+        }
+
+        .btn-enviar:hover{
+            background:#ea580c;
+        }
+
+        .btn-reanudar{
+            background:#3b82f6;
+        }
+
+        .btn-reanudar:hover{
+            background:#2563eb;
+        }
     </style>
 </head>
 <body>
@@ -225,6 +277,7 @@
                             <th>Días en área</th>
                             <th>Días desde creación</th>
                             <th>Última acción</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -253,6 +306,18 @@
                             <td {% if f.dias_en_area > 5 %}class="dias-viejo"{% endif %}>{{ f.dias_en_area }}</td>
                             <td {% if f.dias_desde_creacion > 7 %}class="dias-viejo"{% endif %}>{{ f.dias_desde_creacion }}</td>
                             <td>{{ f.fecha_ultima_accion.strftime('%Y-%m-%d %H:%M') if f.fecha_ultima_accion else '' }}</td>
+                            <td>
+                                {% if f.estado_actual == 'LISTA' %}
+                                    <button class="btn-accion btn-iniciar" onclick="abrirModalOperarioIniciar('{{ f.pa_tipo }}', '{{ f.ficha }}', 0)">INICIAR</button>
+                                    <button class="btn-accion btn-enviar" onclick="abrirModalEnviar('{{ f.pa_tipo }}', '{{ f.ficha }}', {{ id_area }}, 0)">ENVIAR</button>
+                                {% elif f.estado_actual == 'CURSO' %}
+                                    <button class="btn-accion btn-pausar" onclick="abrirModalPausa('{{ f.pa_tipo }}', '{{ f.ficha }}')">PAUSAR</button>
+                                    <button class="btn-accion btn-finalizar" onclick="abrirModalFinalizar('{{ f.pa_tipo }}', '{{ f.ficha }}', '{{ f.nombre_operacion }}', '{{ f.nombre_operario_actual }}', {{ f.unidades_originales or 0 }}, {{ f.kilos_originales or 0 }}, {{ f.pies_originales or 0 }})">FINALIZAR</button>
+                                {% elif f.estado_actual == 'PAUSA' %}
+                                    <button class="btn-accion btn-reanudar" onclick="reanudarFicha('{{ f.pa_tipo }}', '{{ f.ficha }}')">REANUDAR</button>
+                                    <button class="btn-accion btn-finalizar" onclick="abrirModalFinalizar('{{ f.pa_tipo }}', '{{ f.ficha }}', '{{ f.nombre_operacion }}', '{{ f.nombre_operario_actual }}', {{ f.unidades_originales or 0 }}, {{ f.kilos_originales or 0 }}, {{ f.pies_originales or 0 }})">FINALIZAR</button>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -264,6 +329,462 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- MODALES -->
+    <div id="modalOperario" style="display:none; position:fixed; top:20%; left:35%; background:white; border:1px solid #ccc; padding:20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:1000;">
+        <h3>Seleccionar operario</h3>
+
+        <input type="hidden" id="modalFicha">
+        <input type="hidden" id="modalTipo">
+        <input type="hidden" id="modalOperacion">
+
+        <div id="bloqueOperacion" style="display:none;">
+            <label>Operación destino</label>
+            <select id="selectOperacion" style="width:100%; margin-bottom:12px;">
+                <option value="">Seleccione...</option>
+            </select>
+        </div>
+
+        <div id="bloqueCaracteristica" style="display:none;">
+            <label>Característica / Máquina</label>
+            <select id="selectCaracteristica" style="width:100%; margin-bottom:12px;">
+                <option value="">Seleccione...</option>
+            </select>
+        </div>
+
+        <label>Operario:</label><br>
+        <select id="selectOperario" style="width:100%; margin-top:8px; margin-bottom:15px;">
+            <option value="">Seleccione...</option>
+        </select><br>
+
+        <button onclick="confirmarMovimiento()" style="background:#4CAF50; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; margin-right:10px;">Confirmar</button>
+        <button onclick="cerrarModalOperario()" style="background:#f44336; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancelar</button>
+    </div>
+
+    <div id="modalFinalizar" style="display:none; position:fixed; top:18%; left:35%; background:white; border:1px solid #ccc; padding:20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:1001; width:320px;">
+        <h3>Finalizar operación</h3>
+
+        <input type="hidden" id="finFicha">
+        <input type="hidden" id="finTipo">
+
+        <div style="margin-bottom:10px;">
+            <b>Ficha:</b> <span id="finFichaTexto"></span><br>
+            <b>Operación:</b> <span id="finOperacionTexto"></span><br>
+            <b>Operario:</b> <span id="finOperarioTexto"></span>
+        </div>
+
+        <label>Piezas:</label><br>
+        <input type="number" id="finPzas" step="1" min="0" style="width:100%; margin-bottom:10px;"><br>
+
+        <label>Kilos:</label><br>
+        <input type="number" id="finKg" step="0.01" min="0" style="width:100%; margin-bottom:10px;"><br>
+
+        <label>Pies:</label><br>
+        <input type="number" id="finPies" step="0.01" min="0" style="width:100%; margin-bottom:15px;"><br>
+
+        <button onclick="confirmarFinalizacion()" style="background:#4CAF50; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; margin-right:10px;">Confirmar cierre</button>
+        <button onclick="cerrarModalFinalizar()" style="background:#f44336; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancelar</button>
+    </div>
+
+    <div id="modalEnviar" style="display:none; position:fixed; top:18%; left:35%; background:white; border:1px solid #ccc; padding:20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:1002; width:340px;">
+        <h3>Enviar ficha a otra área</h3>
+
+        <input type="hidden" id="envFicha">
+        <input type="hidden" id="envTipo">
+        <input type="hidden" id="envAreaOrigen">
+        <input type="hidden" id="envOperacionOrigen">
+
+        <div style="margin-bottom:10px;">
+            <b>Ficha:</b> <span id="envFichaTexto"></span>
+        </div>
+
+        <label>Área destino:</label><br>
+        <select id="selectAreaDestino" style="width:100%; margin-top:8px; margin-bottom:12px;">
+            <option value="">Seleccione...</option>
+        </select><br>
+
+        <label>Enviado por:</label><br>
+        <input type="text" id="envEnviadoPorNombre" placeholder="Nombre de quien envía" style="width:100%; margin-top:8px; margin-bottom:12px;"><br>
+
+        <label>Observaciones:</label><br>
+        <textarea id="envObservaciones" style="width:100%; margin-top:8px; margin-bottom:15px; height:60px;"></textarea><br>
+
+        <label style="display:block; margin-bottom:10px;">
+            <input type="checkbox" id="envRequiereRegreso"> Requiere regreso al área origen
+        </label>
+
+        <button onclick="confirmarEnvio()" style="background:#FF9800; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; margin-right:10px;">Confirmar envío</button>
+        <button onclick="cerrarModalEnviar()" style="background:#f44336; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancelar</button>
+    </div>
+
+    <div id="modalPausa" style="display:none; position:fixed; top:25%; left:35%; background:white; border:1px solid #ccc; padding:20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:1003; width:300px;">
+        <h3>Pausar ficha</h3>
+
+        <label>Motivo de pausa:</label><br>
+        <select id="motivoPausa" style="width:100%; margin-top:8px; margin-bottom:15px;">
+            <option value="">Seleccione motivo</option>
+            <option value="COMIDA">Comida</option>
+            <option value="MAQUINA">Máquina descompuesta</option>
+            <option value="MATERIAL">Falta material</option>
+            <option value="TURNO">Cambio turno</option>
+            <option value="MANANA">Continúa mañana</option>
+            <option value="OTRO">Otro</option>
+        </select><br>
+
+        <button onclick="confirmarPausa()" style="background:#f59e0b; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; margin-right:10px;">Confirmar pausa</button>
+        <button onclick="cerrarModalPausa()" style="background:#f44336; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancelar</button>
+    </div>
+
+    <div id="modalBackdrop" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:999;"></div>
+
+    <script>
+        const id_area = {{ id_area }};
+        let tarjetaPendiente = null;
+        let columnaOrigen = null;
+        let fichaPausa = null;
+        let tipoPausa = null;
+
+        function abrirModalFinalizar(pa_tipo, ficha, operacion, operario, pzasOriginales, kgOriginales, piesOriginales) {
+            document.getElementById("finTipo").value = pa_tipo;
+            document.getElementById("finFicha").value = ficha;
+
+            document.getElementById("finFichaTexto").textContent = pa_tipo + "-" + ficha;
+            document.getElementById("finOperacionTexto").textContent = operacion || "";
+            document.getElementById("finOperarioTexto").textContent = operario || "";
+
+            document.getElementById("finPzas").value = pzasOriginales || 0;
+            document.getElementById("finKg").value = kgOriginales || 0;
+            document.getElementById("finPies").value = piesOriginales || 0;
+
+            document.getElementById("modalFinalizar").style.display = "block";
+            document.getElementById("modalBackdrop").style.display = "block";
+        }
+
+        function cerrarModalFinalizar() {
+            document.getElementById("modalFinalizar").style.display = "none";
+            document.getElementById("modalBackdrop").style.display = "none";
+        }
+
+        async function confirmarFinalizacion() {
+            const pa_tipo = document.getElementById("finTipo").value;
+            const ficha = document.getElementById("finFicha").value;
+            const pzas = document.getElementById("finPzas").value;
+            const kg = document.getElementById("finKg").value;
+            const pies = document.getElementById("finPies").value;
+
+            if (pzas === "" || kg === "" || pies === "") {
+                alert("Capture piezas, kilos y pies");
+                return;
+            }
+
+            const resp = await fetch("/kanban/finalizar-ficha", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    pa_tipo: pa_tipo,
+                    ficha: ficha,
+                    pzas: parseInt(pzas),
+                    kg: parseFloat(kg),
+                    pies: parseFloat(pies)
+                })
+            });
+
+            const data = await resp.json();
+
+            if (data.status === "ok") {
+                location.reload();
+            } else {
+                alert(data.message || "No se pudo finalizar");
+            }
+        }
+
+        async function abrirModalOperarioIniciar(tipo, ficha, operacion) {
+            tarjetaPendiente = null;
+            columnaOrigen = null;
+
+            document.getElementById("modalFicha").value = ficha;
+            document.getElementById("modalTipo").value = tipo;
+            document.getElementById("modalOperacion").value = operacion;
+
+            const select = document.getElementById("selectOperario");
+            select.innerHTML = '<option value="">Seleccione...</option>';
+
+            const resp = await fetch(`/kanban/operarios/${id_area}`);
+            const operarios = await resp.json();
+
+            operarios.forEach(op => {
+                const option = document.createElement("option");
+                option.value = op.id_operario;
+                option.textContent = op.nombre_operario;
+                option.dataset.nombre = op.nombre_operario;
+                select.appendChild(option);
+            });
+
+            await cargarCaracteristicasOperacion(operacion);
+
+            document.getElementById("modalOperario").style.display = "block";
+            document.getElementById("modalBackdrop").style.display = "block";
+        }
+
+        function cerrarModalOperario() {
+            document.getElementById("modalOperario").style.display = "none";
+            document.getElementById("modalBackdrop").style.display = "none";
+
+            tarjetaPendiente = null;
+            columnaOrigen = null;
+        }
+
+        async function confirmarMovimiento() {
+            const ficha = document.getElementById("modalFicha").value;
+            const tipo = document.getElementById("modalTipo").value;
+            const operacion = document.getElementById("modalOperacion").value;
+
+            const selectOperario = document.getElementById("selectOperario");
+            const id_operario = selectOperario.value;
+            const nombre_operario = selectOperario.options[selectOperario.selectedIndex]?.dataset.nombre || "";
+
+            if (!id_operario) {
+                alert("Seleccione un operario");
+                return;
+            }
+
+            const bloqueCaracteristica = document.getElementById("bloqueCaracteristica");
+            const selectCaracteristica = document.getElementById("selectCaracteristica");
+
+            let id_operacion_caracteristica = null;
+            let nombre_caracteristica = null;
+
+            if (bloqueCaracteristica.style.display !== "none") {
+                id_operacion_caracteristica = selectCaracteristica.value;
+                nombre_caracteristica = selectCaracteristica.options[selectCaracteristica.selectedIndex]?.dataset.nombre || "";
+
+                if (!id_operacion_caracteristica) {
+                    alert("Seleccione la característica o máquina");
+                    return;
+                }
+            }
+
+            const resp = await fetch("/kanban/mover-ficha", {
+                method: "POST",
+                headers: {
+                    "Content-Type":"application/json"
+                },
+                body: JSON.stringify({
+                    ficha: ficha,
+                    pa_tipo: tipo,
+                    id_operacion: parseInt(operacion),
+                    id_operario: id_operario,
+                    nombre_operario: nombre_operario,
+                    id_operacion_caracteristica: id_operacion_caracteristica ? parseInt(id_operacion_caracteristica) : null,
+                    nombre_caracteristica: nombre_caracteristica
+                })
+            });
+
+            const data = await resp.json();
+
+            if (data.status === "ok") {
+                location.reload();
+            } else {
+                alert(data.message || "No se pudo iniciar/mover");
+            }
+        }
+
+        async function cargarCaracteristicasOperacion(idOperacion){
+            const bloque = document.getElementById("bloqueCaracteristica");
+            const select = document.getElementById("selectCaracteristica");
+
+            select.innerHTML = '<option value="">Seleccione...</option>';
+            bloque.style.display = "none";
+
+            if (!idOperacion) {
+                return;
+            }
+
+            const resp = await fetch(`/kanban/operacion-caracteristicas/${idOperacion}`);
+            const items = await resp.json();
+
+            if(items.length > 0){
+                items.forEach(it => {
+                    const option = document.createElement("option");
+                    option.value = it.id_operacion_caracteristica;
+                    option.textContent = it.nombre_caracteristica;
+                    option.dataset.nombre = it.nombre_caracteristica;
+                    select.appendChild(option);
+                });
+
+                bloque.style.display = "block";
+            }
+        }
+
+        document.getElementById("selectOperacion").addEventListener("change", async function() {
+            const operacion = this.value;
+            document.getElementById("modalOperacion").value = operacion;
+
+            await cargarCaracteristicasOperacion(operacion);
+        });
+
+        async function abrirModalEnviar(pa_tipo, ficha, id_area_origen, id_operacion) {
+            document.getElementById("envTipo").value = pa_tipo;
+            document.getElementById("envFicha").value = ficha;
+            document.getElementById("envAreaOrigen").value = id_area_origen;
+            document.getElementById("envOperacionOrigen").value = id_operacion;
+
+            document.getElementById("envFichaTexto").textContent = pa_tipo + "-" + ficha;
+            document.getElementById("envEnviadoPorNombre").value = "";
+            document.getElementById("envObservaciones").value = "";
+            document.getElementById("envRequiereRegreso").checked = false;
+
+            const select = document.getElementById("selectAreaDestino");
+            select.innerHTML = '<option value="">Seleccione...</option>';
+
+            try {
+                const resp = await fetch("/kanban/areas-destino");
+                const areas = await resp.json();
+
+                areas.forEach(a => {
+                    if (parseInt(a.id_area) !== parseInt(id_area_origen)) {
+                        const option = document.createElement("option");
+                        option.value = a.id_area;
+                        option.textContent = a.nombre_area;
+                        select.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                console.error("Error al obtener áreas:", error);
+                alert("Error al cargar las áreas");
+                return;
+            }
+
+            document.getElementById("modalEnviar").style.display = "block";
+            document.getElementById("modalBackdrop").style.display = "block";
+        }
+
+        function cerrarModalEnviar() {
+            document.getElementById("modalEnviar").style.display = "none";
+            document.getElementById("modalBackdrop").style.display = "none";
+        }
+
+        async function confirmarEnvio() {
+            const pa_tipo = document.getElementById("envTipo").value;
+            const ficha = document.getElementById("envFicha").value;
+            const id_area_origen = document.getElementById("envAreaOrigen").value;
+            const id_operacion_origen = document.getElementById("envOperacionOrigen").value;
+            const id_area_destino = document.getElementById("selectAreaDestino").value;
+            const enviado_por_nombre = document.getElementById("envEnviadoPorNombre").value;
+            const observaciones = document.getElementById("envObservaciones").value;
+            const requiere_regreso = document.getElementById("envRequiereRegreso").checked;
+
+            if (!id_area_destino) {
+                alert("Seleccione un área destino");
+                return;
+            }
+
+            if (!enviado_por_nombre.trim()) {
+                alert("Capture quién envía");
+                return;
+            }
+
+            const payload = {
+                ficha: ficha,
+                pa_tipo: pa_tipo,
+                id_area_origen: parseInt(id_area_origen),
+                id_area_destino: parseInt(id_area_destino),
+                id_operacion_origen: parseInt(id_operacion_origen),
+                enviado_por: null,
+                enviado_por_nombre: enviado_por_nombre,
+                requiere_regreso: requiere_regreso,
+                id_area_retorno: requiere_regreso ? parseInt(id_area_origen) : null,
+                observaciones: observaciones
+            };
+
+            try {
+                const resp = await fetch("/kanban/enviar-ficha", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await resp.json();
+
+                if (data.status === "ok") {
+                    alert("✓ Ficha enviada correctamente a " + document.getElementById("selectAreaDestino").options[document.getElementById("selectAreaDestino").selectedIndex].text);
+                    location.reload();
+                } else {
+                    alert("❌ " + (data.message || "No se pudo enviar la ficha"));
+                }
+            } catch (error) {
+                console.error("Error en confirmarEnvio:", error);
+                alert("Error al enviar: " + error.message);
+            }
+        }
+
+        function abrirModalPausa(tipo, ficha) {
+            tipoPausa = tipo;
+            fichaPausa = ficha;
+            
+            document.getElementById("motivoPausa").value = "";
+            document.getElementById("modalPausa").style.display = "block";
+            document.getElementById("modalBackdrop").style.display = "block";
+        }
+
+        function cerrarModalPausa() {
+            document.getElementById("modalPausa").style.display = "none";
+            document.getElementById("modalBackdrop").style.display = "none";
+        }
+
+        async function confirmarPausa() {
+            const motivo = document.getElementById("motivoPausa").value;
+
+            if (!motivo) {
+                alert("Seleccione motivo de pausa");
+                return;
+            }
+
+            const resp = await fetch("/ficha/pausar", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    pa_tipo: tipoPausa,
+                    ficha: fichaPausa,
+                    motivo: motivo
+                })
+            });
+
+            const data = await resp.json();
+            if (data.ok) {
+                location.reload();
+            } else {
+                alert("Error al pausar: " + (data.error || "desconocido"));
+            }
+        }
+
+        async function reanudarFicha(pa_tipo, ficha) {
+            const resp = await fetch("/ficha/reanudar", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    pa_tipo: pa_tipo,
+                    ficha: ficha
+                })
+            });
+
+            const data = await resp.json();
+
+            if (data.ok || data.status === "ok") {
+                location.reload();
+            } else {
+                alert(data.message || "No se pudo reanudar");
+            }
+        }
+    </script>
 
 </body>
 </html>

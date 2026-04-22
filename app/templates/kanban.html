@@ -104,6 +104,7 @@ display:flex;
 gap:20px;
 overflow-x:auto;
 padding:20px 24px;
+flex-wrap:nowrap;
 }
 
 .board.matriz{
@@ -115,8 +116,13 @@ overflow-x:visible;
 .column{
 background:#f2f2f2;
 padding:10px;
-width:280px;
+width:189px;
 border-radius:6px;
+max-height:80vh;
+overflow-y:auto;
+flex-shrink:0;
+min-width:189px;
+font-size:12px;
 }
 
 .board.matriz .column{
@@ -130,6 +136,10 @@ border-bottom:1px solid #ddd;
 margin-bottom:6px;
 font-size:14px;
 color:#374151;
+position:sticky;
+top:0;
+background:#f2f2f2;
+z-index:10;
 }
 
 .card-ficha{
@@ -138,11 +148,11 @@ border-radius:8px;
 padding:8px;
 margin-bottom:8px;
 box-shadow:0 1px 2px rgba(0,0,0,0.1);
-font-size:13px;
+font-size:11px;
 }
 
 .ficha-id{
-font-size:20px;
+font-size:17px;
 font-weight:800;
 color:#111827;
 margin-bottom:4px;
@@ -412,9 +422,44 @@ background:#2563eb;
     <div class="resumen-item">Por recibir: <span>{{ total_pendientes_recibir or 0 }}</span></div>
 </div>
 
-<div style="padding:12px 24px; background:#f7f8fa; display:flex; gap:8px;">
-    <button class="btn-vista active" onclick="setView('flujo')" id="btnFlujo">Flujo</button>
-    <button class="btn-vista" onclick="setView('matriz')" id="btnMatriz">Matriz</button>
+<div style="padding:12px 24px; background:#f7f8fa; display:flex; gap:8px; justify-content:space-between; align-items:center;">
+    <div style="display:flex; gap:8px;">
+        <button class="btn-vista active" onclick="setView('flujo')" id="btnFlujo">Flujo</button>
+        <button class="btn-vista" onclick="setView('matriz')" id="btnMatriz">Matriz</button>
+    </div>
+    
+    <!-- Panel de búsqueda de partida -->
+    <div id="panelBusquedaPartida" style="display:flex; gap:8px; align-items:center; background:white; padding:8px 12px; border-radius:6px; border:1px solid #ddd;">
+        <input type="text" id="inputBuscarPartida" placeholder="Buscar partida (ej: 329060)" style="width:200px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px;">
+        <button onclick="buscarPartidaFuncion()" style="background:#2563eb; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:600; font-size:12px;">Buscar</button>
+        <button onclick="limpiarBusquedaPartida()" style="background:#e5e7eb; color:#374151; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:600; font-size:12px;">Limpiar</button>
+    </div>
+</div>
+
+<!-- Resultado de búsqueda -->
+<div id="resultadoBusquedaPartida" style="display:none; padding:12px 24px; background:#f0f9ff; border-bottom:2px solid #3b82f6;">
+    <div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+        <div>
+            <span style="font-size:12px; color:#6b7280; font-weight:600;">Partida:</span>
+            <span id="resultPartidaNumero" style="font-size:14px; font-weight:800; color:#111827; margin-left:6px;">--</span>
+        </div>
+        <div>
+            <span style="font-size:12px; color:#6b7280; font-weight:600;">Estado:</span>
+            <span id="resultPartidaEstado" style="font-size:13px; font-weight:700; margin-left:6px; padding:2px 6px; border-radius:4px;">--</span>
+        </div>
+        <div>
+            <span style="font-size:12px; color:#6b7280; font-weight:600;">Descripción:</span>
+            <span id="resultPartidaDesc" style="font-size:12px; color:#374151; margin-left:6px;">--</span>
+        </div>
+        <div>
+            <span style="font-size:12px; color:#6b7280; font-weight:600;">Operario:</span>
+            <span id="resultPartidaOperario" style="font-size:12px; color:#374151; margin-left:6px;">--</span>
+        </div>
+        <div id="botonesAccionesPartida" style="display:flex; gap:6px; margin-left:auto;">
+            <!-- Los botones se agregan dinámicamente -->
+        </div>
+        <button onclick="cerrarBusquedaPartida()" style="background:#f3f4f6; color:#6b7280; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">✕ Cerrar</button>
+    </div>
 </div>
 
 <div class="board" id="kanban">
@@ -513,7 +558,7 @@ background:#2563eb;
     </button>
 
     <div class="acciones-ficha">
-        {% if f.estado_actual == 'LISTA' and f.tipo_operacion == 'PROCESO' %}
+{% if f.estado_actual == 'LISTA' and f.tipo_operacion in ['PROCESO', 'RECEPCION'] %}
             <button class="btn-iniciar"
             onclick="abrirModalIniciarConOperacion('{{ f.pa_tipo }}','{{ f.ficha }}')">
             Iniciar
@@ -982,6 +1027,147 @@ document.getElementById("selectOperacion").addEventListener("change", async func
 
     await cargarCaracteristicasOperacion(operacion);
 });
+
+// ============= BÚSQUEDA DE PARTIDA =============
+async function buscarPartidaFuncion() {
+    const numeroBuscado = document.getElementById("inputBuscarPartida").value.trim();
+    
+    if (!numeroBuscado) {
+        alert("Ingrese número de partida");
+        return;
+    }
+
+    const areaId = {{ id_area }};
+    
+    try {
+        const resp = await fetch(`/kanban/buscar-partida/${areaId}/${numeroBuscado}`);
+        const data = await resp.json();
+
+        if (data.status === "ok") {
+            mostrarResultadoPartida(data.ficha, data.acciones);
+        } else {
+            alert("❌ " + (data.message || "Partida no encontrada"));
+            limpiarBusquedaPartida();
+        }
+    } catch (error) {
+        console.error("Error en búsqueda:", error);
+        alert("Error al buscar: " + error.message);
+    }
+}
+
+function mostrarResultadoPartida(ficha, acciones) {
+    const resultDiv = document.getElementById("resultadoBusquedaPartida");
+    
+    // Llenar datos
+    document.getElementById("resultPartidaNumero").textContent = ficha.tipo + "-" + ficha.numero;
+    document.getElementById("resultPartidaDesc").textContent = ficha.descripcion || "--";
+    document.getElementById("resultPartidaOperario").textContent = ficha.operario || "Sin asignar";
+    
+    // Mostrar estado con color
+    const estadoSpan = document.getElementById("resultPartidaEstado");
+    estadoSpan.textContent = ficha.estado;
+    if (ficha.estado === "LISTA") {
+        estadoSpan.style.background = "#e5e7eb";
+        estadoSpan.style.color = "#374151";
+    } else if (ficha.estado === "CURSO") {
+        estadoSpan.style.background = "#fef3c7";
+        estadoSpan.style.color = "#92400e";
+    } else if (ficha.estado === "PAUSA") {
+        estadoSpan.style.background = "#fee2e2";
+        estadoSpan.style.color = "#991b1b";
+    } else {
+        estadoSpan.style.background = "#d1d5db";
+        estadoSpan.style.color = "#374151";
+    }
+    
+    // Generar botones según acciones disponibles
+    const botonesDiv = document.getElementById("botonesAccionesPartida");
+    botonesDiv.innerHTML = "";
+    
+    if (acciones.puede_iniciar) {
+        const btn = document.createElement("button");
+        btn.className = "btn-iniciar";
+        btn.textContent = "INICIAR";
+        btn.style.padding = "6px 12px";
+        btn.style.width = "auto";
+        btn.style.fontSize = "12px";
+        btn.onclick = () => abrirModalIniciarConOperacion(ficha.tipo, ficha.numero);
+        botonesDiv.appendChild(btn);
+    }
+    
+    if (acciones.puede_pausar) {
+        const btn = document.createElement("button");
+        btn.className = "btn-pausar";
+        btn.textContent = "PAUSAR";
+        btn.style.padding = "6px 12px";
+        btn.style.width = "auto";
+        btn.style.fontSize = "12px";
+        btn.onclick = () => abrirModalPausa(ficha.tipo, ficha.numero);
+        botonesDiv.appendChild(btn);
+    }
+    
+    if (acciones.puede_finalizar) {
+        const btn = document.createElement("button");
+        btn.className = "btn-finalizar";
+        btn.textContent = "FINALIZAR";
+        btn.style.padding = "6px 12px";
+        btn.style.width = "auto";
+        btn.style.fontSize = "12px";
+        btn.onclick = () => abrirModalFinalizar(
+            ficha.tipo,
+            ficha.numero,
+            ficha.operacion,
+            ficha.operario,
+            ficha.unidades,
+            ficha.kilos,
+            0
+        );
+        botonesDiv.appendChild(btn);
+    }
+    
+    if (acciones.puede_reanudar) {
+        const btn = document.createElement("button");
+        btn.className = "btn-reanudar";
+        btn.textContent = "REANUDAR";
+        btn.style.padding = "6px 12px";
+        btn.style.width = "auto";
+        btn.style.fontSize = "12px";
+        btn.onclick = () => reanudarFicha(ficha.tipo, ficha.numero);
+        botonesDiv.appendChild(btn);
+    }
+    
+    if (acciones.puede_enviar) {
+        const btn = document.createElement("button");
+        btn.className = "btn-enviar";
+        btn.textContent = "ENVIAR";
+        btn.style.padding = "6px 12px";
+        btn.style.width = "auto";
+        btn.style.fontSize = "12px";
+        btn.onclick = () => abrirModalEnviar(ficha.tipo, ficha.numero, {{ id_area }}, ficha.id_operacion);
+        botonesDiv.appendChild(btn);
+    }
+    
+    // Mostrar resultado
+    resultDiv.style.display = "block";
+}
+
+function cerrarBusquedaPartida() {
+    document.getElementById("resultadoBusquedaPartida").style.display = "none";
+}
+
+function limpiarBusquedaPartida() {
+    document.getElementById("inputBuscarPartida").value = "";
+    cerrarBusquedaPartida();
+    document.getElementById("inputBuscarPartida").focus();
+}
+
+// Permitir Enter en el input de búsqueda
+document.getElementById("inputBuscarPartida").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        buscarPartidaFuncion();
+    }
+});
+
 
 async function abrirModalEnviar(pa_tipo, ficha, id_area, id_operacion) {
     console.log("abrirModalEnviar llamado:", {pa_tipo, ficha, id_area, id_operacion});
